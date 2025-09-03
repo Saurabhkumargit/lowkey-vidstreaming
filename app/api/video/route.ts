@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const videoData = {
+    const videoData = { 
       ...body,
       controls: body?.controls ?? true,
       transformation: {
