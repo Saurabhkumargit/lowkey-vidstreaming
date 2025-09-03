@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 
@@ -13,7 +13,7 @@ function RegisterPage() {
     if (password !== confirmPassword) {
       alert("Passwords do not match");
       return;
-    }
+    } 
 
     try {
       // react-query
