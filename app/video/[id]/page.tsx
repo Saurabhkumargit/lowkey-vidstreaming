@@ -1,7 +1,18 @@
+// app/video/[id]/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+
+interface Comment {
+  _id: string;
+  text: string;
+  userId: {
+    name: string;
+    email: string;
+  };
+  createdAt: string;
+}
 
 interface Video {
   _id: string;
@@ -10,19 +21,15 @@ interface Video {
   videoUrl: string;
   thumbnailUrl: string;
   likes: string[];
-  comments: {
-    _id: string;
-    text: string;
-    createdAt: string;
-    userId: { name?: string };
-  }[];
+  comments: Comment[];
+  createdAt: string;
 }
 
 export default function VideoPage() {
   const { id } = useParams();
   const [video, setVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [commentText, setCommentText] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -33,8 +40,8 @@ export default function VideoPage() {
         if (!res.ok) throw new Error("Failed to fetch video");
         const data = await res.json();
         setVideo(data);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err) {
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -43,40 +50,98 @@ export default function VideoPage() {
     fetchVideo();
   }, [id]);
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
-  if (!video) return <p>No video found.</p>;
+  async function toggleLike() {
+    if (!video) return;
+    try {
+      const res = await fetch(`/api/video/${video._id}/like`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setVideo({ ...video, likes: Array(data.likes).fill("x") }); // update like count
+      }
+    } catch (err) {
+      console.error("Like failed", err);
+    }
+  }
+
+  async function addComment(e: React.FormEvent) {
+    e.preventDefault();
+    if (!video || !commentText.trim()) return;
+    try {
+      const res = await fetch(`/api/video/${video._id}/comment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: commentText }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setVideo({ ...video, comments: data });
+        setCommentText("");
+      }
+    } catch (err) {
+      console.error("Comment failed", err);
+    }
+  }
+
+  if (loading) return <p className="p-4">Loading...</p>;
+  if (!video) return <p className="p-4">Video not found.</p>;
 
   return (
-    <div className="max-w-3xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-2">{video.title}</h1>
+    <div className="max-w-3xl mx-auto p-4 space-y-4">
+      {/* Video player */}
       <video
         src={video.videoUrl}
-        controls
         poster={video.thumbnailUrl}
-        className="w-full rounded-lg shadow mb-4"
+        controls
+        className="w-full rounded-lg shadow"
       />
-      <p className="mb-4">{video.description}</p>
 
-      <div className="mb-4">
-        <span className="font-semibold">{video.likes?.length || 0}</span> likes
+      {/* Title + Description */}
+      <div>
+        <h1 className="text-2xl font-bold">{video.title}</h1>
+        <p className="text-gray-600">{video.description}</p>
       </div>
 
+      {/* Likes */}
+      <div className="flex items-center gap-4">
+        <button
+          onClick={toggleLike}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          ❤️ Like ({video.likes.length})
+        </button>
+      </div>
+
+      {/* Comments */}
       <div>
-        <h2 className="text-xl font-semibold mb-2">Comments</h2>
+        <h2 className="text-lg font-semibold mb-2">Comments</h2>
+        <form onSubmit={addComment} className="flex gap-2 mb-4">
+          <input
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            className="flex-1 border p-2 rounded"
+            placeholder="Add a comment..."
+          />
+          <button
+            type="submit"
+            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+          >
+            Post
+          </button>
+        </form>
+
         {video.comments.length === 0 ? (
-          <p className="text-gray-500">No comments yet</p>
+          <p className="text-gray-500">No comments yet.</p>
         ) : (
           <ul className="space-y-2">
-            {video.comments.map((comment) => (
-              <li key={comment._id} className="p-2 border rounded">
-                <p className="font-semibold">
-                  {comment.userId?.name || "Anonymous"}
+            {video.comments.map((c) => (
+              <li key={c._id} className="p-2 border rounded">
+                <p className="text-sm">{c.text}</p>
+                <p className="text-xs text-gray-500">
+                  by {c.userId?.name || c.userId?.email} on{" "}
+                  {new Date(c.createdAt).toLocaleDateString()}
                 </p>
-                <p>{comment.text}</p>
-                <small className="text-gray-500">
-                  {new Date(comment.createdAt).toLocaleString()}
-                </small>
               </li>
             ))}
           </ul>
