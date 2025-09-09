@@ -3,18 +3,22 @@ import { connectToDatabase } from "@/lib/db";
 import Video, { IVideo } from "@/models/Video";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 
+// ✅ GET all videos
 export async function GET() {
   try {
     await connectToDatabase();
-    const videos = await Video.find({}).sort({ createdAt: -1 }).lean();
 
-    if (!videos || videos.length === 0) {
-      return NextResponse.json([], { status: 200 });
-    }
+    const videos = await Video.find({})
+      .sort({ createdAt: -1 })
+      .populate("userId", "name email") // show uploader info
+      .populate("comments.userId", "name email") // enrich comments
+      .lean();
 
-    return NextResponse.json(videos);
+    return NextResponse.json(videos ?? []);
   } catch (error) {
+    console.error("GET /api/video error:", error);
     return NextResponse.json(
       { error: "Failed to fetch videos" },
       { status: 500 }
@@ -22,42 +26,50 @@ export async function GET() {
   }
 }
 
+// ✅ POST a new video
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectToDatabase();
 
     const body: IVideo = await request.json();
-    if (
-      !body.title ||
-      !body.description ||
-      !body.videoUrl ||
-      !body.thumbnailUrl
-    ) {
+    const { title, description, videoUrl, thumbnailUrl } = body;
+
+    // Basic validation
+    if (!title || !description || !videoUrl || !thumbnailUrl) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    const videoData = { 
-      ...body,
-      controls: body?.controls ?? true,
+    // ✅ Ensure MongoDB ObjectId format
+    const userId = new mongoose.Types.ObjectId(session.user.id);
+
+    const videoData = {
+      title,
+      description,
+      videoUrl,
+      thumbnailUrl,
+      controls: body.controls ?? true,
       transformation: {
         height: 1920,
         width: 1080,
-        quality: body.transformation?.quality ?? 100,
+        quality: body.transformation?.quality ?? 80, // sensible default
       },
+      userId,
     };
+
     const newVideo = await Video.create(videoData);
 
-    return NextResponse.json(newVideo);
-
+    return NextResponse.json(newVideo, { status: 201 });
   } catch (error) {
+    console.error("POST /api/video error:", error);
     return NextResponse.json(
       { error: "Failed to create video" },
       { status: 500 }

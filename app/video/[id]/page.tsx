@@ -58,7 +58,7 @@ export default function VideoPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        setVideo({ ...video, likes: Array(data.likes).fill("x") }); // update like count
+        setVideo({ ...video, likes: data.likes }); // update like count
       }
     } catch (err) {
       console.error("Like failed", err);

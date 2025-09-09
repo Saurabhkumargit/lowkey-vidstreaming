@@ -34,7 +34,7 @@ export async function POST(
 
     await video.save();
 
-    return NextResponse.json({ likes: video.likes.length });
+    return NextResponse.json({ likes: video.likes });
   } catch (err) {
     console.error("LIKE error:", err);
     return NextResponse.json(
