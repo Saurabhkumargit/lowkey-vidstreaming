@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 
 interface Video {
   _id: string;
@@ -12,19 +13,24 @@ interface Video {
 }
 
 export default function ProfilePage() {
+  const { data: session, status } = useSession();
   const [uploaded, setUploaded] = useState<Video[]>([]);
   const [liked, setLiked] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (status === "loading") return;
+
+    if (!session) {
+      setError("unauthorized");
+      setLoading(false);
+      return;
+    }
+
     const fetchData = async () => {
       try {
         const res = await fetch("/api/user/videos");
-        if (res.status === 401) {
-          setError("unauthorized");
-          return;
-        }
         if (!res.ok) throw new Error("Failed to fetch profile data");
 
         const data = await res.json();
@@ -36,10 +42,12 @@ export default function ProfilePage() {
         setLoading(false);
       }
     };
-    fetchData();
-  }, []);
 
-  if (loading) return <p className="p-4">Loading profile...</p>;
+    fetchData();
+  }, [session, status]);
+
+  if (loading || status === "loading")
+    return <p className="p-4">Loading profile...</p>;
   if (error === "unauthorized") {
     return (
       <div className="p-4 text-center">
@@ -57,7 +65,20 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
-      <h1 className="text-2xl font-bold">My Profile</h1>
+      {/* User Info */}
+      <div className="flex items-center gap-4">
+        {session?.user?.image && (
+          <img
+            src={session.user.image}
+            alt={session.user.name || "User"}
+            className="w-16 h-16 rounded-full border"
+          />
+        )}
+        <div>
+          <h1 className="text-2xl font-bold">{session?.user?.name}</h1>
+          <p className="text-gray-600">{session?.user?.email}</p>
+        </div>
+      </div>
 
       {/* Uploaded Videos */}
       <div>
