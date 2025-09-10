@@ -13,11 +13,18 @@ interface Video {
 }
 
 export default function ProfilePage() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const [uploaded, setUploaded] = useState<Video[]>([]);
   const [liked, setLiked] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Edit profile state
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(session?.user?.name || "");
+  const [email, setEmail] = useState(session?.user?.email || "");
+  const [password, setPassword] = useState("");
+  const [avatar, setAvatar] = useState<File | null>(null);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -31,6 +38,10 @@ export default function ProfilePage() {
     const fetchData = async () => {
       try {
         const res = await fetch("/api/user/videos");
+        if (res.status === 401) {
+          setError("unauthorized");
+          return;
+        }
         if (!res.ok) throw new Error("Failed to fetch profile data");
 
         const data = await res.json();
@@ -45,6 +56,32 @@ export default function ProfilePage() {
 
     fetchData();
   }, [session, status]);
+
+  async function handleProfileUpdate(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      const formData = new FormData();
+      formData.append("name", name);
+      formData.append("email", email);
+      if (password) formData.append("password", password);
+      if (avatar) formData.append("avatar", avatar);
+
+      const res = await fetch("/api/user/profile", {
+        method: "PATCH",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("Failed to update profile");
+
+      const data = await res.json();
+      await update({ name: data.name, email: data.email, image: data.avatar });
+      setEditing(false);
+      setPassword("");
+      setAvatar(null);
+    } catch (err) {
+      console.error("Profile update failed:", err);
+    }
+  }
 
   if (loading || status === "loading")
     return <p className="p-4">Loading profile...</p>;
@@ -77,8 +114,56 @@ export default function ProfilePage() {
         <div>
           <h1 className="text-2xl font-bold">{session?.user?.name}</h1>
           <p className="text-gray-600">{session?.user?.email}</p>
+          <button
+            onClick={() => setEditing(!editing)}
+            className="mt-2 px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300"
+          >
+            {editing ? "Cancel" : "Edit Profile"}
+          </button>
         </div>
       </div>
+
+      {/* Profile Edit Form */}
+      {editing && (
+        <form
+          onSubmit={handleProfileUpdate}
+          className="p-4 border rounded space-y-3"
+        >
+          <input
+            type="text"
+            placeholder="Full name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full border p-2 rounded"
+          />
+          <input
+            type="email"
+            placeholder="Email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full border p-2 rounded"
+          />
+          <input
+            type="password"
+            placeholder="New password (optional)"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full border p-2 rounded"
+          />
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setAvatar(e.target.files?.[0] || null)}
+            className="w-full"
+          />
+          <button
+            type="submit"
+            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+          >
+            Save Changes
+          </button>
+        </form>
+      )}
 
       {/* Uploaded Videos */}
       <div>

@@ -4,6 +4,7 @@ import Video, { IVideo } from "@/models/Video";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
+import User from "@/models/User";
 
 // ✅ GET all videos
 export async function GET() {
@@ -66,6 +67,8 @@ export async function POST(request: NextRequest) {
     };
 
     const newVideo = await Video.create(videoData);
+
+    await User.findByIdAndUpdate(userId, { $push: { uploaded: newVideo._id } });
 
     return NextResponse.json(newVideo, { status: 201 });
   } catch (error) {

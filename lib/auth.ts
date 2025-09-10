@@ -60,15 +60,18 @@ export const authOptions: NextAuthOptions = {
       if (account?.provider === "google") {
         try {
           await connectToDatabase();
-          const existingUser = await User.findOne({ email: user.email });
-          if (!existingUser) {
-            // Save new Google user
-            await User.create({
+          let dbUser = await User.findOne({ email: user.email });
+
+          if (!dbUser) {
+            dbUser = await User.create({
               name: user.name,
               email: user.email,
               password: "", // not needed for Google
             });
           }
+
+          // attach MongoDB _id to user
+          (user as any).id = dbUser._id.toString();
         } catch (err) {
           console.error("Google login save error:", err);
         }
