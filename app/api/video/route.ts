@@ -6,15 +6,34 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import User from "@/models/User";
 
-// ✅ GET all videos
-export async function GET() {
+// ✅ GET all videos (with search & filter)
+export async function GET(req: NextRequest) {
   try {
     await connectToDatabase();
 
-    const videos = await Video.find({})
-      .sort({ createdAt: -1 })
-      .populate("userId", "name email") // show uploader info
-      .populate("comments.userId", "name email") // enrich comments
+    const { searchParams } = new URL(req.url);
+    const query = searchParams.get("q") || ""; // search text
+    const filter = searchParams.get("filter") || "recent"; // "recent" | "liked"
+
+    let mongoQuery: any = {};
+    if (query) {
+      mongoQuery = {
+        $or: [
+          { title: { $regex: query, $options: "i" } },
+          { description: { $regex: query, $options: "i" } },
+        ],
+      };
+    }
+
+    let sort: any = { createdAt: -1 }; // default recent
+    if (filter === "liked") {
+      sort = { likes: -1 }; // sort by number of likes
+    }
+
+    const videos = await Video.find(mongoQuery)
+      .sort(sort)
+      .populate("userId", "name email") // uploader info
+      .populate("comments.userId", "name email") // comments enriched
       .lean();
 
     return NextResponse.json(videos ?? []);
@@ -68,6 +87,7 @@ export async function POST(request: NextRequest) {
 
     const newVideo = await Video.create(videoData);
 
+    // Link video to user’s uploaded list
     await User.findByIdAndUpdate(userId, { $push: { uploaded: newVideo._id } });
 
     return NextResponse.json(newVideo, { status: 201 });

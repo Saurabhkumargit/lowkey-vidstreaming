@@ -26,6 +26,14 @@ export default function ProfilePage() {
   const [password, setPassword] = useState("");
   const [avatar, setAvatar] = useState<File | null>(null);
 
+  // Keep form fields in sync once the session loads/changes
+  useEffect(() => {
+    if (session?.user) {
+      setName(session.user.name || "");
+      setEmail(session.user.email || "");
+    }
+  }, [session]);
+
   useEffect(() => {
     if (status === "loading") return;
 

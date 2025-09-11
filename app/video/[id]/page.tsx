@@ -39,7 +39,11 @@ export default function VideoPage() {
         const res = await fetch(`/api/video/${id}`);
         if (!res.ok) throw new Error("Failed to fetch video");
         const data = await res.json();
-        setVideo(data);
+        setVideo({
+          ...data,
+          likes: Array.isArray((data as any).likes) ? (data as any).likes : [],
+          comments: Array.isArray((data as any).comments) ? (data as any).comments : [],
+        });
       } catch (err) {
         console.error(err);
       } finally {
@@ -58,7 +62,19 @@ export default function VideoPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        setVideo({ ...video, likes: data.likes }); // update like count
+        let nextLikes: string[] = [];
+        if (Array.isArray((data as any).likes)) {
+          nextLikes = (data as any).likes as string[];
+        } else if (typeof (data as any).likesCount === "number") {
+          nextLikes = new Array((data as any).likesCount).fill("");
+        } else if (typeof (data as any).isLiked === "boolean") {
+          const delta = (data as any).isLiked ? 1 : -1;
+          const count = Math.max(0, (video.likes?.length || 0) + delta);
+          nextLikes = new Array(count).fill("");
+        } else {
+          nextLikes = video.likes || [];
+        }
+        setVideo({ ...video, likes: nextLikes });
       }
     } catch (err) {
       console.error("Like failed", err);
@@ -109,7 +125,7 @@ export default function VideoPage() {
           onClick={toggleLike}
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
         >
-          ❤️ Like ({video.likes.length})
+          ❤️ Like ({video.likes?.length ?? 0})
         </button>
       </div>
 
@@ -131,7 +147,7 @@ export default function VideoPage() {
           </button>
         </form>
 
-        {video.comments.length === 0 ? (
+        {(video.comments?.length || 0) === 0 ? (
           <p className="text-gray-500">No comments yet.</p>
         ) : (
           <ul className="space-y-2">

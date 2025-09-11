@@ -79,16 +79,35 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
 
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
+      // On sign in, propagate basic fields
       if (user) {
         token.id = (user as any).id || token.id;
+        if (user.name) token.name = user.name;
+        if (user.email) token.email = user.email;
+        const picture = (user as any).image || (user as any).avatar;
+        if (picture) (token as any).picture = picture;
       }
+
+      // When client calls `update()` merge provided fields into token
+      if (trigger === "update" && session) {
+        if ((session as any).name) token.name = (session as any).name as string;
+        if ((session as any).email) token.email = (session as any).email as string;
+        if ((session as any).image)
+          (token as any).picture = (session as any).image as string;
+      }
+
       return token;
     },
 
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
+        // Ensure latest values are reflected in the client session
+        if (token.name) session.user.name = token.name as string;
+        if (token.email) session.user.email = token.email as string;
+        if ((token as any).picture)
+          session.user.image = (token as any).picture as string;
       }
       return session;
     },
