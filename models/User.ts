@@ -9,6 +9,7 @@ export interface IUser {
   _id?: mongoose.Types.ObjectId;
   uploaded?: mongoose.Types.ObjectId[];
   liked?: mongoose.Types.ObjectId[];
+  history?: { videoId: mongoose.Types.ObjectId; watchedAt: Date }[];
 
   createdAt?: Date;
   updatedAt?: Date;
@@ -22,6 +23,10 @@ const userSchema = new Schema<IUser>(
     avatar: { type: String, default: "" },
     uploaded: [{ type: Schema.Types.ObjectId, ref: "Video" }],
     liked: [{ type: Schema.Types.ObjectId, ref: "Video" }],
+    history: [{ 
+      videoId: { type: Schema.Types.ObjectId, ref: "Video" },
+      watchedAt: { type: Date, default: Date.now },
+     }],
   },
   {
     timestamps: true,

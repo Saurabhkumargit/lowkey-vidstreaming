@@ -1,16 +1,15 @@
-// app/profile/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import ProfileHeader from "@/app/components/profile/ProfileHeader";
+import ProfileEditForm from "@/app/components/profile/ProfileEditForm";
+import VideoGrid, {
+  VideoItem as ProfileVideoItem,
+} from "@/app/components/profile/VideoGrid";
+import WatchHistory from "@/app/components/profile/WatchHistory"; // ✅ import
 
-interface Video {
-  _id: string;
-  title: string;
-  description: string;
-  videoUrl: string;
-  thumbnailUrl: string;
-}
+type Video = ProfileVideoItem;
 
 export default function ProfilePage() {
   const { data: session, status, update } = useSession();
@@ -110,112 +109,28 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
-      {/* User Info */}
-      <div className="flex items-center gap-4">
-        {session?.user?.image && (
-          <img
-            src={session.user.image}
-            alt={session.user.name || "User"}
-            className="w-16 h-16 rounded-full border"
-          />
-        )}
-        <div>
-          <h1 className="text-2xl font-bold">{session?.user?.name}</h1>
-          <p className="text-gray-600">{session?.user?.email}</p>
-          <button
-            onClick={() => setEditing(!editing)}
-            className="mt-2 px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300"
-          >
-            {editing ? "Cancel" : "Edit Profile"}
-          </button>
-        </div>
-      </div>
-
-      {/* Profile Edit Form */}
+      <ProfileHeader
+        userName={session?.user?.name || null}
+        userEmail={session?.user?.email || null}
+        userImage={session?.user?.image || null}
+        editing={editing}
+        onToggleEditing={() => setEditing(!editing)}
+      />
       {editing && (
-        <form
+        <ProfileEditForm
+          name={name}
+          email={email}
+          password={password}
+          onChangeName={setName}
+          onChangeEmail={setEmail}
+          onChangePassword={setPassword}
+          onChangeAvatar={setAvatar}
           onSubmit={handleProfileUpdate}
-          className="p-4 border rounded space-y-3"
-        >
-          <input
-            type="text"
-            placeholder="Full name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full border p-2 rounded"
-          />
-          <input
-            type="email"
-            placeholder="Email address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full border p-2 rounded"
-          />
-          <input
-            type="password"
-            placeholder="New password (optional)"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full border p-2 rounded"
-          />
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setAvatar(e.target.files?.[0] || null)}
-            className="w-full"
-          />
-          <button
-            type="submit"
-            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-          >
-            Save Changes
-          </button>
-        </form>
+        />
       )}
-
-      {/* Uploaded Videos */}
-      <div>
-        <h2 className="text-xl font-semibold mb-2">📹 My Videos</h2>
-        {uploaded.length === 0 ? (
-          <p>No videos uploaded yet.</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {uploaded.map((v) => (
-              <div key={v._id} className="border rounded p-2">
-                <video
-                  src={v.videoUrl}
-                  poster={v.thumbnailUrl}
-                  controls
-                  className="w-full rounded"
-                />
-                <h3 className="font-medium mt-2">{v.title}</h3>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Liked Videos */}
-      <div>
-        <h2 className="text-xl font-semibold mb-2">❤️ Liked Videos</h2>
-        {liked.length === 0 ? (
-          <p>No liked videos yet.</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {liked.map((v) => (
-              <div key={v._id} className="border rounded p-2">
-                <video
-                  src={v.videoUrl}
-                  poster={v.thumbnailUrl}
-                  controls
-                  className="w-full rounded"
-                />
-                <h3 className="font-medium mt-2">{v.title}</h3>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <VideoGrid title="📹 My Videos" videos={uploaded} />
+      <VideoGrid title="❤️ Liked Videos" videos={liked} />
+      <WatchHistory /> {/* ✅ Watch history section */}
     </div>
   );
 }

@@ -23,6 +23,7 @@ interface Video {
   likes: string[];
   comments: Comment[];
   createdAt: string;
+  views?: number; // ✅ include views
 }
 
 export default function VideoPage() {
@@ -42,7 +43,10 @@ export default function VideoPage() {
         setVideo({
           ...data,
           likes: Array.isArray((data as any).likes) ? (data as any).likes : [],
-          comments: Array.isArray((data as any).comments) ? (data as any).comments : [],
+          comments: Array.isArray((data as any).comments)
+            ? (data as any).comments
+            : [],
+          views: (data as any).views ?? 0,
         });
       } catch (err) {
         console.error(err);
@@ -53,6 +57,21 @@ export default function VideoPage() {
 
     fetchVideo();
   }, [id]);
+
+  // ✅ Record a view when video starts playing
+  async function recordView() {
+    try {
+      const res = await fetch(`/api/video/${id}/view`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        setVideo((prev) =>
+          prev ? { ...prev, views: data.views ?? prev.views } : prev
+        );
+      }
+    } catch (err) {
+      console.error("View recording failed", err);
+    }
+  }
 
   async function toggleLike() {
     if (!video) return;
@@ -111,12 +130,14 @@ export default function VideoPage() {
         poster={video.thumbnailUrl}
         controls
         className="w-full rounded-lg shadow"
+        onPlay={recordView} // ✅ triggers when playback starts
       />
 
       {/* Title + Description */}
       <div>
         <h1 className="text-2xl font-bold">{video.title}</h1>
         <p className="text-gray-600">{video.description}</p>
+        <p className="text-sm text-gray-500 mt-1">👁 {video.views ?? 0} views</p>
       </div>
 
       {/* Likes */}

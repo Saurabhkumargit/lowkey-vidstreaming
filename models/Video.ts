@@ -24,6 +24,7 @@ export interface IVideo {
     text: string;
     createdAt?: Date;
   }[];
+  views?: number;
 }
 
 const videoSchema = new Schema<IVideo>(
@@ -47,6 +48,7 @@ const videoSchema = new Schema<IVideo>(
         createdAt: { type: Date, default: Date.now },
       },
     ],
+    views: { type: Number, default: 0 },
   },
   {
     timestamps: true,
