@@ -12,7 +12,11 @@ interface Video {
   createdAt?: string;
 }
 
-export default function VideoGallery() {
+export default function VideoGallery({
+  source = "all",
+}: {
+  source?: "all" | "feed";
+}) {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +24,8 @@ export default function VideoGallery() {
   useEffect(() => {
     const fetchVideos = async () => {
       try {
-        const res = await fetch("/api/video");
+        const endpoint = source === "feed" ? "/api/user/feed" : "/api/video";
+        const res = await fetch(endpoint);
         if (!res.ok) throw new Error("Failed to fetch videos");
 
         const data = await res.json();
@@ -33,7 +38,7 @@ export default function VideoGallery() {
     };
 
     fetchVideos();
-  }, []);
+  }, [source]);
 
   if (loading) return <p className="text-gray-600">Loading videos...</p>;
   if (error) return <p className="text-red-500">Error: {error}</p>;
