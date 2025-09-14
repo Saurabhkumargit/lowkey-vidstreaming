@@ -7,14 +7,23 @@ import ProfileEditForm from "@/app/components/profile/ProfileEditForm";
 import VideoGrid, {
   VideoItem as ProfileVideoItem,
 } from "@/app/components/profile/VideoGrid";
-import WatchHistory from "@/app/components/profile/WatchHistory"; // ✅ import
+import WatchHistory from "@/app/components/profile/WatchHistory";
+import Image from "next/image";
+import Link from "next/link";
 
 type Video = ProfileVideoItem;
+
+interface Follower {
+  _id: string;
+  name: string;
+  avatar?: string;
+}
 
 export default function ProfilePage() {
   const { data: session, status, update } = useSession();
   const [uploaded, setUploaded] = useState<Video[]>([]);
   const [liked, setLiked] = useState<Video[]>([]);
+  const [followers, setFollowers] = useState<Follower[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +34,7 @@ export default function ProfilePage() {
   const [password, setPassword] = useState("");
   const [avatar, setAvatar] = useState<File | null>(null);
 
-  // Keep form fields in sync once the session loads/changes
+  // Keep form fields in sync
   useEffect(() => {
     if (session?.user) {
       setName(session.user.name || "");
@@ -44,7 +53,7 @@ export default function ProfilePage() {
 
     const fetchData = async () => {
       try {
-        const res = await fetch("/api/user/videos");
+        const res = await fetch("/api/user/profile");
         if (res.status === 401) {
           setError("unauthorized");
           return;
@@ -54,6 +63,7 @@ export default function ProfilePage() {
         const data = await res.json();
         setUploaded(data.uploaded);
         setLiked(data.liked);
+        setFollowers(data.followers || []);
       } catch (err: any) {
         setError(err.message || "Unknown error");
       } finally {
@@ -128,9 +138,37 @@ export default function ProfilePage() {
           onSubmit={handleProfileUpdate}
         />
       )}
+
+      {/* Followers Section */}
+      <div>
+        <h2 className="text-lg font-semibold mb-2">👥 My Followers</h2>
+        {followers.length === 0 ? (
+          <p className="text-gray-500">No followers yet.</p>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {followers.map((f) => (
+              <Link
+                key={f._id}
+                href={`/user/${f._id}`}
+                className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50"
+              >
+                <Image
+                  src={f.avatar || "/default-avatar.png"}
+                  alt={f.name}
+                  width={40}
+                  height={40}
+                  className="rounded-full"
+                />
+                <span>{f.name}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
       <VideoGrid title="📹 My Videos" videos={uploaded} />
       <VideoGrid title="❤️ Liked Videos" videos={liked} />
-      <WatchHistory /> {/* ✅ Watch history section */}
+      <WatchHistory />
     </div>
   );
 }

@@ -9,6 +9,55 @@ import { authOptions } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
+export async function GET() {
+  try {
+    await connectToDatabase();
+
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    let userObjectId: mongoose.Types.ObjectId | null = null;
+    if (session.user.id && mongoose.isValidObjectId(session.user.id)) {
+      userObjectId = new mongoose.Types.ObjectId(session.user.id);
+    } else if (session.user.email) {
+      const found = await User.findOne({ email: session.user.email })
+        .select("_id")
+        .lean<{ _id: mongoose.Types.ObjectId } | null>();
+      if (found?._id) userObjectId = new mongoose.Types.ObjectId(found._id);
+    }
+
+    if (!userObjectId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Fetch user with followers and videos
+    const user = await User.findById(userObjectId)
+      .populate('followers', 'name avatar')
+      .lean();
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Fetch user's uploaded videos
+    const Video = (await import("@/models/Video")).default;
+    const videos = await Video.find({ userId: userObjectId })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return NextResponse.json({
+      uploaded: videos,
+      liked: [], // You can implement liked videos later
+      followers: user.followers || [],
+    });
+  } catch (err) {
+    console.error("GET /api/user/profile error:", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+}
+
 async function saveFileFromBlob(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
