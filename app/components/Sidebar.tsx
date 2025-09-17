@@ -6,10 +6,10 @@ import { usePathname } from "next/navigation";
 type NavItem = { href: string; label: string; icon: string };
 
 const navItems: NavItem[] = [
-  { href: "/", label: "Home", icon: "🏠" },
-  { href: "/feed", label: "Subscriptions", icon: "🧷" },
-  { href: "/videos", label: "Library", icon: "🎞️" },
-  { href: "/profile", label: "History", icon: "🕘" },
+  { href: "/", label: "Home", icon: "/assets/icons/home.svg" },
+  { href: "/feed", label: "Following", icon: "/assets/icons/following.svg" },
+  { href: "/videos", label: "Library", icon: "/assets/icons/library.svg" },
+  { href: "/profile", label: "History", icon: "/assets/icons/history.svg" },
 ];
 
 export default function Sidebar() {
@@ -34,13 +34,12 @@ export default function Sidebar() {
               }}
             >
               <span
-                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-base"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md"
                 style={{
                   backgroundColor: active ? "#181818" : "transparent",
-                  color: "#e5e5e5",
                 }}
               >
-                {item.icon}
+                <img src={item.icon} alt={item.label} className="h-5 w-5" />
               </span>
               <span className="hidden md:inline text-[0.925rem] text-[#e5e5e5] group-hover:opacity-100">
                 {item.label}

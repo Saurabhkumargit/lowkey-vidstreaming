@@ -7,7 +7,7 @@ function VideoCard({ video }: { video: Video }) {
   return (
     <Link
       href={`/video/${video._id}`}
-      className="group overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition shadow-sm"
+      className="group overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition shadow-sm hover:shadow-[0px_20px_207px_10px_rgba(165,39,255,0.48)]"
     >
       <div className="relative aspect-video w-full bg-black">
         {/* Use video poster if available; show as muted preview on hover */}
@@ -23,7 +23,9 @@ function VideoCard({ video }: { video: Video }) {
         <h3 className="line-clamp-2 text-sm font-semibold text-white/90 group-hover:text-white">
           {video.title}
         </h3>
-        <p className="line-clamp-2 text-xs text-white/60">{video.description}</p>
+        <p className="line-clamp-2 text-xs text-white/60">
+          {video.description}
+        </p>
         {video.createdAt && (
           <p className="text-[11px] text-white/40">
             {new Date(video.createdAt).toLocaleDateString()}
@@ -33,6 +35,7 @@ function VideoCard({ video }: { video: Video }) {
     </Link>
   );
 }
+
 
 interface Video {
   _id: string;

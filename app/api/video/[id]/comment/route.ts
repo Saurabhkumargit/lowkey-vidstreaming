@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/lib/db";
 import Video from "@/models/Video";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 
 export async function POST(
   req: Request,
@@ -24,18 +25,27 @@ export async function POST(
       );
 
     const { id } = await params;
-    const video = await Video.findById(id);
-    if (!video)
+    const videoObjectId = new mongoose.Types.ObjectId(id);
+    const userObjectId = new mongoose.Types.ObjectId(session.user.id);
+
+    const updated = await Video.findOneAndUpdate(
+      { _id: videoObjectId },
+      {
+        $push: {
+          comments: { userId: userObjectId, text, createdAt: new Date() },
+        },
+      },
+      { new: true, upsert: false }
+    )
+      .select("comments")
+      .populate("comments.userId", "name email")
+      .lean<{ comments?: any[] } | null>();
+
+    if (!updated) {
       return NextResponse.json({ error: "Video not found" }, { status: 404 });
+    }
 
-    video.comments.push({
-      userId: session.user.id,
-      text,
-      createdAt: new Date(),
-    });
-
-    await video.save();
-    return NextResponse.json(video.comments);
+    return NextResponse.json(updated.comments || []);
   } catch (err) {
     return NextResponse.json(
       { error: "Failed to add comment" },

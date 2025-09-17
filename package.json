@@ -18,6 +18,7 @@
     "formidable": "^3.5.4",
     "lucide-react": "^0.543.0",
     "mongoose": "^8.18.0",
+    "motion": "^12.23.13",
     "next": "15.5.0",
     "next-auth": "^4.24.11",
     "postcss": "^8.5.6",

@@ -4,6 +4,7 @@ import User from "@/models/User";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 
 export async function POST(
   req: Request,
@@ -17,39 +18,48 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id: videoId } = await params;
-    const userId = session.user.id;
+    const { id: videoIdParam } = await params;
+    const videoObjectId = new mongoose.Types.ObjectId(videoIdParam);
+    const userObjectId = new mongoose.Types.ObjectId(session.user.id);
 
-    const video = await Video.findById(videoId);
+    const video = await Video.findById(videoObjectId).select("_id likes");
     if (!video) {
       return NextResponse.json({ error: "Video not found" }, { status: 404 });
     }
 
-    let isLiked = false;
+    const alreadyLiked = video.likes.some(
+      (id: any) => id.toString() === userObjectId.toString()
+    );
 
-    if (video.likes.some((id: any) => id.toString() === userId)) {
-      // 🔹 Unlike video
-      video.likes = video.likes.filter((id: any) => id.toString() !== userId);
+    let isLiked = !alreadyLiked;
 
-      await User.findByIdAndUpdate(userId, {
-        $pull: { liked: videoId },
-      });
+    if (alreadyLiked) {
+      await Promise.all([
+        Video.updateOne(
+          { _id: videoObjectId },
+          { $pull: { likes: userObjectId } },
+          { timestamps: false }
+        ),
+        User.findByIdAndUpdate(userObjectId, { $pull: { liked: videoObjectId } }),
+      ]);
     } else {
-      // 🔹 Like video
-      video.likes.push(userId);
-
-      await User.findByIdAndUpdate(userId, {
-        $addToSet: { liked: videoId }, // avoid duplicates
-      });
-      isLiked = true;
+      await Promise.all([
+        Video.updateOne(
+          { _id: videoObjectId },
+          { $addToSet: { likes: userObjectId } },
+          { timestamps: false }
+        ),
+        User.findByIdAndUpdate(userObjectId, { $addToSet: { liked: videoObjectId } }),
+      ]);
     }
 
-    await video.save();
+    const updated = await Video.findById(videoObjectId).select("likes").lean<{ likes?: any[] } | null>();
+    const likesCount = Array.isArray(updated?.likes) ? updated!.likes!.length : 0;
 
     return NextResponse.json({
       success: true,
       isLiked,
-      likesCount: video.likes.length,
+      likesCount,
     });
   } catch (err) {
     console.error("LIKE error:", err);

@@ -121,7 +121,7 @@ export default function UserProfilePage() {
               isFollowing ? "bg-white/10 text-white" : "bg-red-600 text-white hover:bg-red-500"
             }`}
           >
-            {isFollowing ? "Unsubscribe" : "Subscribe"}
+            {isFollowing ? "UnFollow" : "Follow"}
           </button>
         )}
         </div>

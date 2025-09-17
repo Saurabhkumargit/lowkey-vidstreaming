@@ -4,6 +4,9 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Layout from "@/app/components/Layout";
+import { StarBorder } from "@/components/ui/star-border";
+import { Like } from "@/public/assets/icons/Like";
+import { DisLike } from "@/public/assets/icons/DisLike";
 
 interface Comment {
   _id: string;
@@ -140,7 +143,9 @@ export default function VideoPage() {
         {/* Title */}
         <div>
           <h1 className="text-2xl font-bold text-white/95">{video.title}</h1>
-          <p className="text-sm text-white/50 mt-1">👁 {video.views ?? 0} views</p>
+          <p className="text-sm text-white/50 mt-1">
+            👁 {video.views ?? 0} views
+          </p>
         </div>
 
         {/* Channel row + actions */}
@@ -148,17 +153,23 @@ export default function VideoPage() {
           <div className="h-10 w-10 rounded-full bg-white/10 ring-1 ring-white/10" />
           <div className="mr-auto">
             <p className="text-sm font-medium text-white/90">Channel Name</p>
-            <p className="text-xs text-white/50">1.2M subscribers</p>
+            <p className="text-xs text-white/50">1.2M Followers</p>
           </div>
-          <button className="px-4 py-2 rounded-full bg-red-600 text-white hover:bg-red-500 transition">Subscribe</button>
+          {/* <button className="px-4 py-2 rounded-full bg-red-600 text-white hover:bg-red-500 transition">Follow</button> */}
+          <StarBorder className="shadow-[0_20px_50px_rgba(165,39,255,0.48)]">
+            Follow
+          </StarBorder>
+
           <div className="flex items-center gap-2">
             <button
               onClick={toggleLike}
               className="px-4 py-2 rounded-full bg-white/10 text-white hover:bg-white/15 transition"
             >
-              👍 {video.likes?.length ?? 0}
+              <Like /> {video.likes?.length ?? 0}
             </button>
-            <button className="px-4 py-2 rounded-full bg-white/10 text-white hover:bg-white/15 transition">👎</button>
+            <button className="px-4 py-2 rounded-full bg-white/10 text-white hover:bg-white/15 transition">
+              <DisLike />
+            </button>
           </div>
         </div>
 
@@ -190,7 +201,10 @@ export default function VideoPage() {
           ) : (
             <ul className="space-y-2">
               {video.comments.map((c) => (
-                <li key={c._id} className="p-3 rounded-lg bg-white/5 ring-1 ring-white/10">
+                <li
+                  key={c._id}
+                  className="p-3 rounded-lg bg-white/5 ring-1 ring-white/10"
+                >
                   <p className="text-sm text-white/90">{c.text}</p>
                   <p className="text-xs text-white/50">
                     by {c.userId?.name || c.userId?.email} on{" "}
