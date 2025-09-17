@@ -3,6 +3,7 @@ import fs from "fs/promises";
 import path from "path";
 import { connectToDatabase } from "@/lib/db";
 import User from "@/models/User";
+import type { IUser } from "@/models/User";
 import mongoose from "mongoose";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -35,7 +36,7 @@ export async function GET() {
     // Fetch user with followers and videos
     const user = await User.findById(userObjectId)
       .populate('followers', 'name avatar')
-      .lean();
+      .lean<IUser & { followers?: Array<{ _id: mongoose.Types.ObjectId; name?: string; avatar?: string }> }>();
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });

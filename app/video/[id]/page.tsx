@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Layout from "@/app/components/Layout";
 
 interface Comment {
   _id: string;
@@ -119,71 +120,88 @@ export default function VideoPage() {
     }
   }
 
-  if (loading) return <p className="p-4">Loading...</p>;
-  if (!video) return <p className="p-4">Video not found.</p>;
+  if (loading) return <p className="p-4 text-white/60">Loading...</p>;
+  if (!video) return <p className="p-4 text-red-400">Video not found.</p>;
 
   return (
-    <div className="max-w-3xl mx-auto p-4 space-y-4">
-      {/* Video player */}
-      <video
-        src={video.videoUrl}
-        poster={video.thumbnailUrl}
-        controls
-        className="w-full rounded-lg shadow"
-        onPlay={recordView} // ✅ triggers when playback starts
-      />
-
-      {/* Title + Description */}
-      <div>
-        <h1 className="text-2xl font-bold">{video.title}</h1>
-        <p className="text-gray-600">{video.description}</p>
-        <p className="text-sm text-gray-500 mt-1">👁 {video.views ?? 0} views</p>
-      </div>
-
-      {/* Likes */}
-      <div className="flex items-center gap-4">
-        <button
-          onClick={toggleLike}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          ❤️ Like ({video.likes?.length ?? 0})
-        </button>
-      </div>
-
-      {/* Comments */}
-      <div>
-        <h2 className="text-lg font-semibold mb-2">Comments</h2>
-        <form onSubmit={addComment} className="flex gap-2 mb-4">
-          <input
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-            className="flex-1 border p-2 rounded"
-            placeholder="Add a comment..."
+    <Layout>
+      <div className="max-w-3xl py-6 space-y-4">
+        {/* Video player placeholder (16:9) */}
+        <div className="w-full aspect-video rounded-xl bg-black ring-1 ring-white/10 shadow overflow-hidden">
+          <video
+            src={video.videoUrl}
+            poster={video.thumbnailUrl}
+            controls
+            className="h-full w-full object-cover"
+            onPlay={recordView}
           />
-          <button
-            type="submit"
-            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-          >
-            Post
-          </button>
-        </form>
+        </div>
 
-        {(video.comments?.length || 0) === 0 ? (
-          <p className="text-gray-500">No comments yet.</p>
-        ) : (
-          <ul className="space-y-2">
-            {video.comments.map((c) => (
-              <li key={c._id} className="p-2 border rounded">
-                <p className="text-sm">{c.text}</p>
-                <p className="text-xs text-gray-500">
-                  by {c.userId?.name || c.userId?.email} on{" "}
-                  {new Date(c.createdAt).toLocaleDateString()}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
+        {/* Title */}
+        <div>
+          <h1 className="text-2xl font-bold text-white/95">{video.title}</h1>
+          <p className="text-sm text-white/50 mt-1">👁 {video.views ?? 0} views</p>
+        </div>
+
+        {/* Channel row + actions */}
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-white/10 ring-1 ring-white/10" />
+          <div className="mr-auto">
+            <p className="text-sm font-medium text-white/90">Channel Name</p>
+            <p className="text-xs text-white/50">1.2M subscribers</p>
+          </div>
+          <button className="px-4 py-2 rounded-full bg-red-600 text-white hover:bg-red-500 transition">Subscribe</button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleLike}
+              className="px-4 py-2 rounded-full bg-white/10 text-white hover:bg-white/15 transition"
+            >
+              👍 {video.likes?.length ?? 0}
+            </button>
+            <button className="px-4 py-2 rounded-full bg-white/10 text-white hover:bg-white/15 transition">👎</button>
+          </div>
+        </div>
+
+        {/* Description */}
+        <div className="rounded-xl bg-white/5 ring-1 ring-white/10 p-3">
+          <p className="text-white/80">{video.description}</p>
+        </div>
+
+        {/* Comments */}
+        <div>
+          <h2 className="text-lg font-semibold mb-2 text-white/90">Comments</h2>
+          <form onSubmit={addComment} className="flex gap-2 mb-4">
+            <input
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              className="flex-1 rounded-lg bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 ring-1 ring-white/10 focus:outline-none focus:ring-white/20"
+              placeholder="Add a comment..."
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-500 transition"
+            >
+              Post
+            </button>
+          </form>
+
+          {(video.comments?.length || 0) === 0 ? (
+            <p className="text-white/60">No comments yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {video.comments.map((c) => (
+                <li key={c._id} className="p-3 rounded-lg bg-white/5 ring-1 ring-white/10">
+                  <p className="text-sm text-white/90">{c.text}</p>
+                  <p className="text-xs text-white/50">
+                    by {c.userId?.name || c.userId?.email} on{" "}
+                    {new Date(c.createdAt).toLocaleDateString()}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
-    </div>
+    </Layout>
   );
 }

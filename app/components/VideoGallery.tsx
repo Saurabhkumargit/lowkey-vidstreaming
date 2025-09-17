@@ -3,6 +3,37 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+function VideoCard({ video }: { video: Video }) {
+  return (
+    <Link
+      href={`/video/${video._id}`}
+      className="group overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition shadow-sm"
+    >
+      <div className="relative aspect-video w-full bg-black">
+        {/* Use video poster if available; show as muted preview on hover */}
+        <video
+          src={video.videoUrl}
+          poster={video.thumbnailUrl}
+          muted
+          playsInline
+          className="h-full w-full object-cover"
+        />
+      </div>
+      <div className="p-3 space-y-1.5">
+        <h3 className="line-clamp-2 text-sm font-semibold text-white/90 group-hover:text-white">
+          {video.title}
+        </h3>
+        <p className="line-clamp-2 text-xs text-white/60">{video.description}</p>
+        {video.createdAt && (
+          <p className="text-[11px] text-white/40">
+            {new Date(video.createdAt).toLocaleDateString()}
+          </p>
+        )}
+      </div>
+    </Link>
+  );
+}
+
 interface Video {
   _id: string;
   title: string;
@@ -40,41 +71,17 @@ export default function VideoGallery({
     fetchVideos();
   }, [source]);
 
-  if (loading) return <p className="text-gray-600">Loading videos...</p>;
-  if (error) return <p className="text-red-500">Error: {error}</p>;
+  if (loading) return <p className="text-white/60">Loading videos...</p>;
+  if (error) return <p className="text-red-400">Error: {error}</p>;
 
   return (
-    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       {videos.length === 0 ? (
-        <p className="col-span-full text-center text-gray-500">
+        <p className="col-span-full text-center text-white/50">
           No videos available.
         </p>
       ) : (
-        videos.map((video) => (
-          <Link
-            href={`/video/${video._id}`}
-            key={video._id}
-            className="border rounded-lg shadow-sm p-4 hover:shadow-md transition"
-          >
-            <video
-              src={video.videoUrl}
-              poster={video.thumbnailUrl}
-              controls
-              className="w-full h-48 object-cover rounded mb-3"
-            />
-            <h2 className="text-lg font-semibold line-clamp-1">
-              {video.title}
-            </h2>
-            <p className="text-gray-600 text-sm line-clamp-2">
-              {video.description}
-            </p>
-            {video.createdAt && (
-              <p className="text-xs text-gray-400 mt-2">
-                Uploaded {new Date(video.createdAt).toLocaleDateString()}
-              </p>
-            )}
-          </Link>
-        ))
+        videos.map((video) => <VideoCard key={video._id} video={video} />)
       )}
     </div>
   );

@@ -2,16 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import ProfileHeader from "@/app/components/profile/ProfileHeader";
-import ProfileEditForm from "@/app/components/profile/ProfileEditForm";
-import VideoGrid, {
-  VideoItem as ProfileVideoItem,
-} from "@/app/components/profile/VideoGrid";
-import WatchHistory from "@/app/components/profile/WatchHistory";
 import Image from "next/image";
 import Link from "next/link";
+import Layout from "@/app/components/Layout";
 
-type Video = ProfileVideoItem;
+type Video = {
+  _id: string;
+  title: string;
+  description: string;
+  videoUrl: string;
+  thumbnailUrl: string;
+  createdAt?: string;
+};
 
 interface Follower {
   _id: string;
@@ -26,8 +28,8 @@ export default function ProfilePage() {
   const [followers, setFollowers] = useState<Follower[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"videos" | "playlists" | "liked">("videos");
 
-  // Edit profile state
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(session?.user?.name || "");
   const [email, setEmail] = useState(session?.user?.email || "");
@@ -101,74 +103,156 @@ export default function ProfilePage() {
   }
 
   if (loading || status === "loading")
-    return <p className="p-4">Loading profile...</p>;
+    return <p className="p-4 text-white/60">Loading profile...</p>;
   if (error === "unauthorized") {
     return (
-      <div className="p-4 text-center">
+      <div className="p-6 text-center text-white/80">
         <p className="mb-4">You must sign in to view your profile.</p>
         <a
           href="/api/auth/signin"
-          className="px-4 py-2 bg-blue-500 text-white rounded"
+          className="inline-flex items-center rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15 transition"
         >
           Sign In
         </a>
       </div>
     );
   }
-  if (error) return <p className="text-red-500 p-4">Error: {error}</p>;
+  if (error) return <p className="text-red-400 p-4">Error: {error}</p>;
+
+  const handle = session?.user?.email?.split("@")[0] || "user";
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-6">
-      <ProfileHeader
-        userName={session?.user?.name || null}
-        userEmail={session?.user?.email || null}
-        userImage={session?.user?.image || null}
-        editing={editing}
-        onToggleEditing={() => setEditing(!editing)}
-      />
-      {editing && (
-        <ProfileEditForm
-          name={name}
-          email={email}
-          password={password}
-          onChangeName={setName}
-          onChangeEmail={setEmail}
-          onChangePassword={setPassword}
-          onChangeAvatar={setAvatar}
-          onSubmit={handleProfileUpdate}
-        />
-      )}
+    <Layout>
+      <div className="max-w-5xl py-6 space-y-6">
+        {/* Profile header */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <Image
+            src={(session?.user?.image as string) || "/default-avatar.png"}
+            alt={session?.user?.name || handle}
+            width={96}
+            height={96}
+            className="rounded-full ring-1 ring-white/10"
+          />
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold text-white/95">{session?.user?.name || "Username"}</h1>
+            <p className="text-white/60">@{handle}</p>
+          </div>
+          <button
+            onClick={() => setEditing((v) => !v)}
+            className="inline-flex items-center rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15 transition"
+          >
+            Edit Profile
+          </button>
+        </div>
 
-      {/* Followers Section */}
-      <div>
-        <h2 className="text-lg font-semibold mb-2">👥 My Followers</h2>
-        {followers.length === 0 ? (
-          <p className="text-gray-500">No followers yet.</p>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {followers.map((f) => (
-              <Link
-                key={f._id}
-                href={`/user/${f._id}`}
-                className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50"
+        {editing && (
+          <form onSubmit={handleProfileUpdate} className="rounded-xl bg-white/5 ring-1 ring-white/10 p-4 space-y-3">
+            <div className="grid sm:grid-cols-2 gap-3">
+              <input
+                className="rounded-md bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 ring-1 ring-white/10 focus:outline-none focus:ring-white/20"
+                placeholder="Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+              <input
+                className="rounded-md bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 ring-1 ring-white/10 focus:outline-none focus:ring-white/20"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <input
+                className="rounded-md bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 ring-1 ring-white/10 focus:outline-none focus:ring-white/20"
+                placeholder="New password (optional)"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <input
+                className="rounded-md bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 ring-1 ring-white/10 focus:outline-none focus:ring-white/20"
+                type="file"
+                accept="image/*"
+                onChange={(e) => setAvatar(e.target.files?.[0] || null)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <button type="submit" className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 transition">Save</button>
+              <button type="button" onClick={() => setEditing(false)} className="rounded-md bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15 transition">Cancel</button>
+            </div>
+          </form>
+        )}
+
+        {/* Tabs */}
+        <div className="border-b border-white/10">
+          <div className="-mb-px flex gap-4">
+            {[
+              { key: "videos", label: "Videos" },
+              { key: "playlists", label: "Playlists" },
+              { key: "liked", label: "Liked" },
+            ].map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setActiveTab(t.key as any)}
+                className={`px-3 py-2 text-sm transition border-b-2 ${
+                  activeTab === t.key
+                    ? "border-red-600 text-white"
+                    : "border-transparent text-white/70 hover:text-white"
+                }`}
               >
-                <Image
-                  src={f.avatar || "/default-avatar.png"}
-                  alt={f.name}
-                  width={40}
-                  height={40}
-                  className="rounded-full"
-                />
-                <span>{f.name}</span>
-              </Link>
+                {t.label}
+              </button>
             ))}
+          </div>
+        </div>
+
+        {/* Tab content */}
+        {activeTab === "videos" && (
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {uploaded.length === 0 ? (
+              <p className="text-white/60">No videos uploaded.</p>
+            ) : (
+              uploaded.map((video) => (
+                <Link
+                  key={video._id}
+                  href={`/video/${video._id}`}
+                  className="overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition"
+                >
+                  <div className="w-full aspect-video bg-[#181818]" />
+                  <div className="p-3">
+                    <h3 className="text-sm font-semibold text-white/90 line-clamp-2">{video.title}</h3>
+                    <p className="text-xs text-white/60 line-clamp-2">{video.description}</p>
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
+        )}
+
+        {activeTab === "playlists" && (
+          <div className="text-white/60">Playlists coming soon.</div>
+        )}
+
+        {activeTab === "liked" && (
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {liked.length === 0 ? (
+              <p className="text-white/60">No liked videos.</p>
+            ) : (
+              liked.map((video) => (
+                <Link
+                  key={video._id}
+                  href={`/video/${video._id}`}
+                  className="overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition"
+                >
+                  <div className="w-full aspect-video bg-[#181818]" />
+                  <div className="p-3">
+                    <h3 className="text-sm font-semibold text-white/90 line-clamp-2">{video.title}</h3>
+                    <p className="text-xs text-white/60 line-clamp-2">{video.description}</p>
+                  </div>
+                </Link>
+              ))
+            )}
           </div>
         )}
       </div>
-
-      <VideoGrid title="📹 My Videos" videos={uploaded} />
-      <VideoGrid title="❤️ Liked Videos" videos={liked} />
-      <WatchHistory />
-    </div>
+    </Layout>
   );
 }
