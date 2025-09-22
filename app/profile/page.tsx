@@ -65,9 +65,10 @@ export default function ProfilePage() {
         const data = await res.json();
         setUploaded(data.uploaded);
         setLiked(data.liked);
-        setFollowers(data.followers || []);
-      } catch (err: any) {
-        setError(err.message || "Unknown error");
+        setFollowers(Array.isArray(data.followers) ? data.followers : []);
+      } catch (err: unknown) {
+        const error = err as Error;
+        setError(error.message || "Unknown error");
       } finally {
         setLoading(false);
       }
@@ -108,12 +109,12 @@ export default function ProfilePage() {
     return (
       <div className="p-6 text-center text-white/80">
         <p className="mb-4">You must sign in to view your profile.</p>
-        <a
+        <Link
           href="/api/auth/signin"
           className="inline-flex items-center rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15 transition"
         >
           Sign In
-        </a>
+        </Link>
       </div>
     );
   }
@@ -136,6 +137,7 @@ export default function ProfilePage() {
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-white/95">{session?.user?.name || "Username"}</h1>
             <p className="text-white/60">@{handle}</p>
+            <p className="text-white/50 text-sm mt-1">{followers.length} Followers</p>
           </div>
           <button
             onClick={() => setEditing((v) => !v)}
@@ -191,7 +193,7 @@ export default function ProfilePage() {
             ].map((t) => (
               <button
                 key={t.key}
-                onClick={() => setActiveTab(t.key as any)}
+                onClick={() => setActiveTab(t.key as "videos" | "playlists" | "liked")}
                 className={`px-3 py-2 text-sm transition border-b-2 ${
                   activeTab === t.key
                     ? "border-red-600 text-white"
@@ -206,7 +208,7 @@ export default function ProfilePage() {
 
         {/* Tab content */}
         {activeTab === "videos" && (
-          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {uploaded.length === 0 ? (
               <p className="text-white/60">No videos uploaded.</p>
             ) : (
@@ -232,7 +234,7 @@ export default function ProfilePage() {
         )}
 
         {activeTab === "liked" && (
-          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {liked.length === 0 ? (
               <p className="text-white/60">No liked videos.</p>
             ) : (

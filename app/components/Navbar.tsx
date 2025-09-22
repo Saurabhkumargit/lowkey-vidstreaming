@@ -5,7 +5,7 @@ import LogoutButton from "./LogoutButton";
 import { useState } from "react";
 import Image from "next/image";
 
-export default function Navbar({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
+export default function Navbar() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [search, setSearch] = useState("");
@@ -21,19 +21,12 @@ export default function Navbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-4">
         {/* Left: menu + logo */}
         <div className="flex items-center gap-3">
-          <button
-            aria-label="Menu"
-            onClick={onToggleSidebar}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition"
-          >
-            ☰
-          </button>
-          <Link href="/" className="flex items-center gap-2 font-semibold">
+          <Link href="/" className="flex items-center gap-1 font-semibold">
             <Image
               src="/assets/logo.png"
               alt="Lowkey"
-              width={28}
-              height={28}
+              width={56}
+              height={36}
               className="rounded"
             />
             <span className="hidden sm:inline text-white/90">Lowkey</span>
@@ -51,10 +44,15 @@ export default function Navbar({ onToggleSidebar }: { onToggleSidebar?: () => vo
             />
             <button
               type="submit"
-              className="rounded-full bg-white/10 px-3 py-1 text-white/80 hover:bg-white/15 transition"
+              className="rounded-full  px-3 py-1 text-white/80 hover:bg-white/15 transition"
               aria-label="Search"
             >
-              🔍
+              <Image
+                src="/assets/icons/search.svg"
+                alt="Upload"
+                width={18}
+                height={18}
+              />
             </button>
           </div>
         </form>

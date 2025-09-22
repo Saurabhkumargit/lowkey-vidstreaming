@@ -2,7 +2,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Layout from "@/app/components/Layout";
 import { StarBorder } from "@/components/ui/star-border";
 import { Like } from "@/public/assets/icons/Like";
@@ -24,17 +25,34 @@ interface Video {
   description: string;
   videoUrl: string;
   thumbnailUrl: string;
+  userId: string;
   likes: string[];
   comments: Comment[];
   createdAt: string;
   views?: number; // ✅ include views
 }
 
+interface VideoOwnerInfo {
+  id: string;
+  name: string;
+  followersCount: number;
+}
+
+type LikeResponse =
+  | { likes: string[] }
+  | { likesCount: number }
+  | { isLiked: boolean };
+
 export default function VideoPage() {
   const { id } = useParams();
+  const router = useRouter();
+  const { data: session } = useSession();
   const [video, setVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState("");
+  const [followLoading, setFollowLoading] = useState(false);
+  const [following, setFollowing] = useState(false);
+  const [owner, setOwner] = useState<VideoOwnerInfo | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -44,14 +62,71 @@ export default function VideoPage() {
         const res = await fetch(`/api/video/${id}`);
         if (!res.ok) throw new Error("Failed to fetch video");
         const data = await res.json();
+        type RawVideo = {
+          _id: string;
+          title: string;
+          description: string;
+          videoUrl: string;
+          thumbnailUrl: string;
+          userId:
+            | string
+            | { _id: string; name?: string; followers?: unknown[] };
+          likes?: unknown;
+          comments?: unknown;
+          views?: number;
+        };
+
+        const raw = data as RawVideo;
+        const ownerId =
+          typeof raw.userId === "string" ? raw.userId : raw.userId?._id;
+        const likes = Array.isArray(raw.likes) ? (raw.likes as string[]) : [];
+        const comments = Array.isArray(raw.comments)
+          ? (raw.comments as Comment[])
+          : [];
         setVideo({
-          ...data,
-          likes: Array.isArray((data as any).likes) ? (data as any).likes : [],
-          comments: Array.isArray((data as any).comments)
-            ? (data as any).comments
-            : [],
-          views: (data as any).views ?? 0,
+          _id: raw._id,
+          title: raw.title,
+          description: raw.description,
+          videoUrl: raw.videoUrl,
+          thumbnailUrl: raw.thumbnailUrl,
+          userId: ownerId,
+          likes,
+          comments,
+          createdAt: "",
+          views: typeof raw.views === "number" ? raw.views : 0,
         });
+
+        // Fetch initial follow status
+        if (ownerId) {
+          try {
+            const followRes = await fetch(`/api/user/${ownerId}/follow`);
+            if (followRes.ok) {
+              const st = await followRes.json();
+              if (typeof st.following === "boolean") {
+                setFollowing(st.following as boolean);
+              }
+              const ownerDoc =
+                (raw.userId as {
+                  _id: string;
+                  name?: string;
+                  followers?: unknown[];
+                }) || null;
+              if (ownerDoc?.name) {
+                setOwner({
+                  id: ownerId,
+                  name: ownerDoc.name,
+                  followersCount: Array.isArray(ownerDoc.followers)
+                    ? ownerDoc.followers.length
+                    : st?.user?.followersCount || 0,
+                });
+              } else if (st.user) {
+                setOwner(st.user as VideoOwnerInfo);
+              }
+            }
+          } catch (e) {
+            console.error("Failed to fetch follow info", e);
+          }
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -60,7 +135,7 @@ export default function VideoPage() {
     };
 
     fetchVideo();
-  }, [id]);
+  }, [id, session?.user?.id]);
 
   // ✅ Record a view when video starts playing
   async function recordView() {
@@ -77,6 +152,36 @@ export default function VideoPage() {
     }
   }
 
+  async function toggleFollow() {
+    if (!video || !video.userId || followLoading) return;
+    if (session?.user?.id && session.user.id === video.userId) return; // prevent self-follow
+    setFollowLoading(true);
+    const prev = following;
+    setFollowing(!prev);
+    try {
+      const res = await fetch(`/api/user/${video.userId}/follow`, {
+        method: "POST",
+      });
+      if (res.status === 401) {
+        setFollowing(prev);
+        router.push("/login");
+        return;
+      }
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+      const data = await res.json();
+      if (typeof data.following === "boolean") {
+        setFollowing(data.following as boolean);
+      }
+    } catch (e) {
+      console.error("Follow failed", e);
+      setFollowing(prev);
+    } finally {
+      setFollowLoading(false);
+    }
+  }
+
   async function toggleLike() {
     if (!video) return;
     try {
@@ -84,19 +189,25 @@ export default function VideoPage() {
         method: "POST",
       });
       if (res.ok) {
-        const data = await res.json();
+        const data: LikeResponse = await res.json();
+
         let nextLikes: string[] = [];
-        if (Array.isArray((data as any).likes)) {
-          nextLikes = (data as any).likes as string[];
-        } else if (typeof (data as any).likesCount === "number") {
-          nextLikes = new Array((data as any).likesCount).fill("");
-        } else if (typeof (data as any).isLiked === "boolean") {
-          const delta = (data as any).isLiked ? 1 : -1;
+
+        if ("likes" in data && Array.isArray(data.likes)) {
+          nextLikes = data.likes;
+        } else if (
+          "likesCount" in data &&
+          typeof data.likesCount === "number"
+        ) {
+          nextLikes = new Array(data.likesCount).fill("");
+        } else if ("isLiked" in data && typeof data.isLiked === "boolean") {
+          const delta = data.isLiked ? 1 : -1;
           const count = Math.max(0, (video.likes?.length || 0) + delta);
           nextLikes = new Array(count).fill("");
         } else {
           nextLikes = video.likes || [];
         }
+
         setVideo({ ...video, likes: nextLikes });
       }
     } catch (err) {
@@ -128,7 +239,7 @@ export default function VideoPage() {
 
   return (
     <Layout>
-      <div className="max-w-3xl py-6 space-y-4">
+      <div className="max-w-5xl mx-auto py-6 space-y-6">
         {/* Video player placeholder (16:9) */}
         <div className="w-full aspect-video rounded-xl bg-black ring-1 ring-white/10 shadow overflow-hidden">
           <video
@@ -143,21 +254,33 @@ export default function VideoPage() {
         {/* Title */}
         <div>
           <h1 className="text-2xl font-bold text-white/95">{video.title}</h1>
-          <p className="text-sm text-white/50 mt-1">
-            👁 {video.views ?? 0} views
-          </p>
+          <p className="text-sm text-white/50 mt-1">{video.views ?? 0} views</p>
         </div>
 
         {/* Channel row + actions */}
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-white/10 ring-1 ring-white/10" />
           <div className="mr-auto">
-            <p className="text-sm font-medium text-white/90">Channel Name</p>
-            <p className="text-xs text-white/50">1.2M Followers</p>
+            <p className="text-sm font-medium text-white/90">
+              {owner?.name || "Channel"}
+            </p>
+            <p className="text-xs text-white/50">
+              {owner?.followersCount ?? 0} Followers
+            </p>
           </div>
-          {/* <button className="px-4 py-2 rounded-full bg-red-600 text-white hover:bg-red-500 transition">Follow</button> */}
-          <StarBorder className="shadow-[0_20px_50px_rgba(165,39,255,0.48)]">
-            Follow
+          <StarBorder
+            as="button"
+            onClick={toggleFollow}
+            disabled={
+              followLoading ||
+              !video?.userId ||
+              session?.user?.id === video.userId
+            }
+            className={`min-w-28 px-6 ${
+              followLoading ? "opacity-60 cursor-not-allowed" : ""
+            }`}
+          >
+            {followLoading ? "..." : following ? "Following" : "Follow"}
           </StarBorder>
 
           <div className="flex items-center gap-2">

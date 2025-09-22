@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-
+import Image from "next/image";
 type Props = {
   userName?: string | null;
   userEmail?: string | null;
@@ -20,10 +20,13 @@ export default function ProfileHeader({
   return (
     <div className="flex items-center gap-4">
       {userImage && (
-        <img
+        <Image
           src={userImage}
           alt={userName || "User"}
           className="w-16 h-16 rounded-full border"
+          width={64}
+          height={64}
+          unoptimized
         />
       )}
       <div>

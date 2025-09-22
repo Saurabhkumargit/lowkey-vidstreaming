@@ -54,8 +54,9 @@ export default function Home() {
             setAllVideos(repeated);
           }
         }
-      } catch (e: any) {
-        setError(e?.message || "Unknown error");
+      } catch (e: unknown) {
+        const error = e as Error;
+        setError(error.message || "Unknown error");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -106,7 +107,7 @@ export default function Home() {
           <p className="text-white/60">No videos found.</p>
         ) : (
           <>
-            <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {visibleVideos.map((v, i) => (
                 <Link
                   key={v.__k || `${v._id}-${i}`}

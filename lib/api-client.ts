@@ -3,10 +3,10 @@ import { IVideo } from "@/models/Video";
 export type VideoFormData = Omit<IVideo, "_id">
 
 type FetchOptions = {
-    method?: "GET" | "POST" | "PUT" | "DELETE";
-    body?: any;
-    headers?: Record<string, string>;
-}
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  body?: Record<string, unknown> | BodyInit | null;
+  headers?: Record<string, string>;
+};
 
 class ApiClient {
     private async fetch<T>(

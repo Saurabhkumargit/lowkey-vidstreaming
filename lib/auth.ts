@@ -1,19 +1,29 @@
-import { NextAuthOptions } from "next-auth";
+import { NextAuthOptions, User as NextAuthUser } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
+import { JWT } from "next-auth/jwt";
 import User from "@/models/User";
 import { connectToDatabase } from "./db";
 import bcrypt from "bcryptjs";
 
+// Extend User and JWT right here
+interface AppUser extends NextAuthUser {
+  id: string;
+  image?: string | null;
+}
+
+interface AppJWT extends JWT {
+  id: string;
+  picture?: string | null;
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
-    // Google Login
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
 
-    // Credentials Login
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -21,37 +31,32 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
 
-      async authorize(credentials) {
+      async authorize(credentials): Promise<AppUser | null> {
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Missing email or password");
         }
 
-        try {
-          await connectToDatabase();
-          const user = await User.findOne({ email: credentials.email });
+        await connectToDatabase();
+        const user = await User.findOne({ email: credentials.email });
 
-          if (!user) {
-            throw new Error("No user found");
-          }
-
-          const isValid = await bcrypt.compare(
-            credentials.password,
-            user.password
-          );
-
-          if (!isValid) {
-            throw new Error("Invalid password");
-          }
-
-          return {
-            id: user._id.toString(),
-            email: user.email,
-            name: user.name,
-          };
-        } catch (error) {
-          console.error("Auth error: ", error);
-          throw error;
+        if (!user) {
+          throw new Error("No user found");
         }
+
+        const isValid = await bcrypt.compare(
+          credentials.password,
+          user.password
+        );
+
+        if (!isValid) {
+          throw new Error("Invalid password");
+        }
+
+        return {
+          id: user._id.toString(),
+          email: user.email,
+          name: user.name,
+        };
       },
     }),
   ],
@@ -66,12 +71,11 @@ export const authOptions: NextAuthOptions = {
             dbUser = await User.create({
               name: user.name,
               email: user.email,
-              password: "", // not needed for Google
+              password: "",
             });
           }
 
-          // attach MongoDB _id to user
-          (user as any).id = dbUser._id.toString();
+          (user as AppUser).id = dbUser._id.toString();
         } catch (err) {
           console.error("Google login save error:", err);
         }
@@ -80,34 +84,32 @@ export const authOptions: NextAuthOptions = {
     },
 
     async jwt({ token, user, trigger, session }) {
-      // On sign in, propagate basic fields
+      const t = token as AppJWT;
+
       if (user) {
-        token.id = (user as any).id || token.id;
-        if (user.name) token.name = user.name;
-        if (user.email) token.email = user.email;
-        const picture = (user as any).image || (user as any).avatar;
-        if (picture) (token as any).picture = picture;
+        const u = user as AppUser;
+        t.id = u.id;
+        if (u.name) t.name = u.name;
+        if (u.email) t.email = u.email;
+        if (u.image) t.picture = u.image;
       }
 
-      // When client calls `update()` merge provided fields into token
       if (trigger === "update" && session) {
-        if ((session as any).name) token.name = (session as any).name as string;
-        if ((session as any).email) token.email = (session as any).email as string;
-        if ((session as any).image)
-          (token as any).picture = (session as any).image as string;
+        if (session.name) t.name = session.name;
+        if (session.email) t.email = session.email;
+        if (session.image) t.picture = session.image;
       }
 
-      return token;
+      return t;
     },
 
     async session({ session, token }) {
+      const t = token as AppJWT;
       if (session.user) {
-        session.user.id = token.id as string;
-        // Ensure latest values are reflected in the client session
-        if (token.name) session.user.name = token.name as string;
-        if (token.email) session.user.email = token.email as string;
-        if ((token as any).picture)
-          session.user.image = (token as any).picture as string;
+        session.user.id = t.id;
+        if (t.name) session.user.name = t.name;
+        if (t.email) session.user.email = t.email;
+        if (t.picture) session.user.image = t.picture;
       }
       return session;
     },
@@ -118,7 +120,7 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

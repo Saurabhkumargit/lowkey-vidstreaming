@@ -44,9 +44,8 @@ export default function UserProfilePage() {
         setVideos(data.videos);
 
         if (session?.user?.id) {
-          setIsFollowing(
-            data.user.followers.some((f: any) => f._id === session.user.id)
-          );
+          const followers = data.user.followers as Array<{ _id: string }>;
+          setIsFollowing(followers.some((f) => f._id === session.user.id));
         }
       } catch (err) {
         console.error(err);
@@ -75,8 +74,8 @@ export default function UserProfilePage() {
                 ? [
                     ...prev.followers,
                     {
-                      _id: session?.user?.id!,
-                      name: session?.user?.name!,
+                      _id: session?.user?.id || "",
+                      name: session?.user?.name || "",
                       avatar: session?.user?.image || undefined,
                     },
                   ]

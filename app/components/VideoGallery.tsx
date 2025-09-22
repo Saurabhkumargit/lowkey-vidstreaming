@@ -7,9 +7,9 @@ function VideoCard({ video }: { video: Video }) {
   return (
     <Link
       href={`/video/${video._id}`}
-      className="group overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition shadow-sm hover:shadow-[0px_20px_207px_10px_rgba(165,39,255,0.48)]"
+      className="group block rounded-xl bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition-shadow duration-300 ease-out hover:shadow-[0px_20px_194px_2px_rgba(165,_39,_255,_0.48)]"
     >
-      <div className="relative aspect-video w-full bg-black">
+      <div className="relative aspect-video w-full bg-black overflow-hidden rounded-t-xl">
         {/* Use video poster if available; show as muted preview on hover */}
         <video
           src={video.videoUrl}
@@ -64,8 +64,9 @@ export default function VideoGallery({
 
         const data = await res.json();
         setVideos(data);
-      } catch (err: any) {
-        setError(err.message || "Unknown error");
+      } catch (err: unknown) {
+        const error = err as Error;
+        setError(error.message || "Unknown error");
       } finally {
         setLoading(false);
       }
@@ -78,7 +79,7 @@ export default function VideoGallery({
   if (error) return <p className="text-red-400">Error: {error}</p>;
 
   return (
-    <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+    <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
       {videos.length === 0 ? (
         <p className="col-span-full text-center text-white/50">
           No videos available.

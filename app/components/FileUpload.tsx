@@ -2,9 +2,10 @@
 
 import { upload } from "@imagekit/next";
 import { useState } from "react";
+import Image from "next/image";
 
 interface FileUploadProps {
-  onSuccess?: (response: any) => void;
+  onSuccess?: (response: unknown) => void;
   onProgress?: (progress: number) => void;
   fileType?: "image" | "video";
 }
@@ -151,10 +152,13 @@ const FileUpload = ({ onSuccess, onProgress, fileType }: FileUploadProps) => {
               className="w-full max-h-64 object-contain"
             />
           ) : (
-            <img
+            <Image
               src={previewUrl}
               alt="Preview"
               className="w-full max-h-64 object-contain"
+              width={512}
+              height={256}
+              unoptimized
             />
           )}
         </div>

@@ -27,11 +27,11 @@ export async function POST(
       return NextResponse.json({ error: "Video not found" }, { status: 404 });
     }
 
-    const alreadyLiked = video.likes.some(
-      (id: any) => id.toString() === userObjectId.toString()
+    const alreadyLiked = (video.likes as mongoose.Types.ObjectId[]).some(
+      (likeUserId) => likeUserId.equals(userObjectId)
     );
 
-    let isLiked = !alreadyLiked;
+    const isLiked = !alreadyLiked;
 
     if (alreadyLiked) {
       await Promise.all([
@@ -53,7 +53,7 @@ export async function POST(
       ]);
     }
 
-    const updated = await Video.findById(videoObjectId).select("likes").lean<{ likes?: any[] } | null>();
+    const updated = await Video.findById(videoObjectId).select("likes").lean<{ likes?: unknown[] } | null>();
     const likesCount = Array.isArray(updated?.likes) ? updated!.likes!.length : 0;
 
     return NextResponse.json({

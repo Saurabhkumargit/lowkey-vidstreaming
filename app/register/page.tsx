@@ -45,8 +45,9 @@ function RegisterPage() {
 
       console.log("User registered:", data);
       router.push("/login");
-    } catch (err: any) {
-      setError(err.message || "Something went wrong");
+    } catch (err: unknown) {
+      const error = err as Error;
+      setError(error.message || "Unknown error");
     } finally {
       setLoading(false);
     }

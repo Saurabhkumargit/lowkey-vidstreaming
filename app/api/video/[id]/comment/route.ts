@@ -39,14 +39,14 @@ export async function POST(
     )
       .select("comments")
       .populate("comments.userId", "name email")
-      .lean<{ comments?: any[] } | null>();
+      .lean<{ comments?: unknown[] } | null>();
 
     if (!updated) {
       return NextResponse.json({ error: "Video not found" }, { status: 404 });
     }
 
     return NextResponse.json(updated.comments || []);
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to add comment" },
       { status: 500 }

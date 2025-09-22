@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
+import Image from "next/image";
 type NavItem = { href: string; label: string; icon: string };
 
 const navItems: NavItem[] = [
@@ -39,7 +39,11 @@ export default function Sidebar() {
                   backgroundColor: active ? "#181818" : "transparent",
                 }}
               >
-                <img src={item.icon} alt={item.label} className="h-5 w-5" />
+                <Image src={item.icon} alt={item.label} className="h-5 w-5"
+                width={5}
+                height={20}
+                unoptimized
+                />
               </span>
               <span className="hidden md:inline text-[0.925rem] text-[#e5e5e5] group-hover:opacity-100">
                 {item.label}

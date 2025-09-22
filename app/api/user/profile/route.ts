@@ -48,9 +48,17 @@ export async function GET() {
       .sort({ createdAt: -1 })
       .lean();
 
+    // Fetch user's liked videos
+    const likedVideoIds = Array.isArray(user.liked) ? user.liked : [];
+    const likedVideos = likedVideoIds.length
+      ? await Video.find({ _id: { $in: likedVideoIds } })
+          .sort({ createdAt: -1 })
+          .lean()
+      : [];
+
     return NextResponse.json({
       uploaded: videos,
-      liked: [], // You can implement liked videos later
+      liked: likedVideos,
       followers: user.followers || [],
     });
   } catch (err) {
@@ -126,7 +134,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({
       name: updatedUser?.name,
       email: updatedUser!.email,
-      avatar: (updatedUser as any)?.avatar || "",
+      avatar: (updatedUser && (updatedUser as { avatar?: string }).avatar) || "",
     });
   } catch (err) {
     console.error("PATCH /api/user/profile error:", err);

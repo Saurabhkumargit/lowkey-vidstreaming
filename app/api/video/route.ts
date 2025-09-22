@@ -15,7 +15,9 @@ export async function GET(req: NextRequest) {
     const query = searchParams.get("q") || ""; // search text
     const filter = searchParams.get("filter") || "recent"; // "recent" | "liked"
 
-    let mongoQuery: any = {};
+    type MongoQuery = Record<string, unknown>;
+
+    let mongoQuery: MongoQuery = {};
     if (query) {
       mongoQuery = {
         $or: [
@@ -25,9 +27,10 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    let sort: any = { createdAt: -1 }; // default recent
+    // Use a concrete sort type compatible with Mongoose
+    let sort: Record<string, 1 | -1> = { createdAt: -1 };
     if (filter === "liked") {
-      sort = { likes: -1 }; // sort by number of likes
+      sort = { likes: -1 };
     }
 
     const videos = await Video.find(mongoQuery)

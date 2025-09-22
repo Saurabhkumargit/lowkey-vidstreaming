@@ -1,5 +1,5 @@
 import Link from "next/link";
-
+import Image from "next/image";
 interface HistoryItemProps {
   id: string;
   title: string;
@@ -17,10 +17,13 @@ export default function WatchHistoryItem({
     <li className="border rounded shadow p-2">
       <Link href={`/video/${id}`}>
         <div className="cursor-pointer">
-          <img
+          <Image
             src={thumbnailUrl}
             alt={title}
             className="w-full h-40 object-cover rounded"
+            width={160}
+            height={90}
+            unoptimized
           />
           <p className="mt-2 font-medium truncate">{title}</p>
           <p className="text-xs text-gray-500">

@@ -11,10 +11,9 @@ export async function GET(
     await connectToDatabase();
     const { id } = await params;
 
-    const video = await Video.findById(id).populate(
-      "comments.userId",
-      "name email"
-    );
+    const video = await Video.findById(id)
+      .populate("comments.userId", "name email")
+      .populate("userId", "name followers");
 
     if (!video) {
       return new NextResponse("Video not found", { status: 404 });
