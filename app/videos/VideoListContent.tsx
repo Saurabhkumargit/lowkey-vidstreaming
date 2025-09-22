@@ -3,8 +3,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { IVideo } from "@/models/Video";
-import Image from "next/image";
-import Link from "next/link";
 
 export default function VideoListContent() {
   const searchParams = useSearchParams();
