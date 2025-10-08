@@ -1,10 +1,10 @@
 import { authOptions } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
+import User from "@/models/User";
 import Video, { IVideo } from "@/models/Video";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
-import User from "@/models/User";
 
 // ✅ GET all videos (with search & filter)
 export async function GET(req: NextRequest) {
@@ -33,13 +33,25 @@ export async function GET(req: NextRequest) {
       sort = { likes: -1 };
     }
 
+    // Ensure User model is available for populate
+    if (!(mongoose.models && mongoose.models.User)) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      await import('@/models/User');
+    }
+
     const videos = await Video.find(mongoQuery)
       .sort(sort)
       .populate("userId", "name email") // uploader info
       .populate("comments.userId", "name email") // comments enriched
       .lean();
 
-    return NextResponse.json(videos ?? []);
+    const count = (videos ?? []).length;
+    console.info(`GET /api/video -> found ${count} videos (filter=${filter}, q="${query}")`);
+
+    return NextResponse.json(videos ?? [], {
+      status: 200,
+      headers: { "X-Total-Count": String(count) },
+    });
   } catch (error) {
     console.error("GET /api/video error:", error);
     return NextResponse.json(

@@ -99,7 +99,7 @@ export default function VideoPage() {
         // Fetch initial follow status
         if (ownerId) {
           try {
-            const followRes = await fetch(`/api/user/${ownerId}/follow`);
+            const followRes = await fetch(`/api/user/${ownerId}/follow`, { credentials: 'include' });
             if (followRes.ok) {
               const st = await followRes.json();
               if (typeof st.following === "boolean") {
@@ -161,7 +161,13 @@ export default function VideoPage() {
     try {
       const res = await fetch(`/api/user/${video.userId}/follow`, {
         method: "POST",
+        credentials: "include",
       });
+      if (res.status === 401) {
+        setFollowing(prev);
+        router.push('/login');
+        return;
+      }
       if (res.status === 401) {
         setFollowing(prev);
         router.push("/login");
@@ -187,7 +193,12 @@ export default function VideoPage() {
     try {
       const res = await fetch(`/api/video/${video._id}/like`, {
         method: "POST",
+        credentials: "include",
       });
+      if (res.status === 401) {
+        router.push('/login');
+        return;
+      }
       if (res.ok) {
         const data: LikeResponse = await res.json();
 
@@ -222,8 +233,13 @@ export default function VideoPage() {
       const res = await fetch(`/api/video/${video._id}/comment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ text: commentText }),
       });
+      if (res.status === 401) {
+        router.push('/login');
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         setVideo({ ...video, comments: data });
