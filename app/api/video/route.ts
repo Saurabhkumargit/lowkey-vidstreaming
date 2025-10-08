@@ -35,7 +35,6 @@ export async function GET(req: NextRequest) {
 
     // Ensure User model is available for populate
     if (!(mongoose.models && mongoose.models.User)) {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       await import('@/models/User');
     }
 

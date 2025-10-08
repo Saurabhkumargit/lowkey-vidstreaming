@@ -5,7 +5,6 @@ import Link from "next/link";
 import Layout from "./components/Layout";
 import { connectToDatabase } from "@/lib/db";
 import mongoose from "mongoose";
-import User from "@/models/User"; // ensure User schema is registered for populate
 import Video from "@/models/Video";
 
 type VideoType = {
@@ -26,20 +25,19 @@ export default async function Home() {
   await connectToDatabase();
   // Ensure User model is registered on the mongoose instance before populate
   if (!mongoose.models || !mongoose.models.User) {
-    // dynamic import ensures the module runs and registers the model
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     await import("@/models/User");
   }
-  const docs = await Video.find({}).sort({ createdAt: -1 }).limit(100).populate("userId", "name email").lean();
-  const base: VideoType[] = Array.isArray(docs) ? (docs as any) : [];
 
-  let repeated: (VideoType & { __k: string })[] = [];
+  const docs = await Video.find({}).sort({ createdAt: -1 }).limit(100).populate("userId", "name email").lean();
+  const base: VideoType[] = Array.isArray(docs) ? (docs as unknown as VideoType[]) : [];
+
+  const repeated: (VideoType & { __k: string })[] = [];
   if (base.length > 0) {
     const repeat = Math.max(1, Math.ceil(MIN_FEED_SIZE / base.length));
     for (let r = 0; r < repeat; r++) {
       for (let i = 0; i < base.length; i++) {
         const v = base[i];
-        repeated.push({ ...(v as any), __k: `${v._id}-${r * base.length + i}` });
+        repeated.push({ ...v, __k: `${v._id}-${r * base.length + i}` });
       }
     }
     // simple shuffle
